@@ -1,7 +1,7 @@
 """Build the Claude request in three layers, the first two cached for an hour.
 
 1. Catalog (``system``): role, the operator's instructions, every event type.
-2. Site (first user block): the site's context and all its cameras.
+2. Site (second ``system`` block): the site's context and all its cameras.
 3. Round (after the breakpoints): the time and the frames that changed.
 
 Layers 1 and 2 must be byte-identical between calls — no time, no IDs, sorted
@@ -109,12 +109,17 @@ def _base(
     round_blocks: list[dict],
     settings: Settings,
 ) -> dict[str, Any]:
-    site_block = {"type": "text", "text": render_site(site, cameras), "cache_control": CACHE_1H}
+    # Both cached layers live in `system`: images in `messages` invalidate the
+    # messages cache but never the system cache, so an image-less keep-alive
+    # warms exactly what the real calls read.
     return {
         "model": settings.ANTHROPIC_MODEL,
         "max_tokens": settings.ANALYSIS_MAX_TOKENS,
-        "system": [{"type": "text", "text": render_system(catalog), "cache_control": CACHE_1H}],
-        "messages": [{"role": "user", "content": [site_block, *round_blocks]}],
+        "system": [
+            {"type": "text", "text": render_system(catalog), "cache_control": CACHE_1H},
+            {"type": "text", "text": render_site(site, cameras), "cache_control": CACHE_1H},
+        ],
+        "messages": [{"role": "user", "content": round_blocks}],
         "output_config": {
             "effort": "medium",
             "format": {

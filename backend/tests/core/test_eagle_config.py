@@ -59,3 +59,36 @@ def test_missing_file_raises_config_error(tmp_path):
 def test_rect_out_of_range_rejected():
     with pytest.raises(ValidationError):
         Rect(x=0.6, y=0, w=0.5, h=0.1)
+
+
+def test_extra_schema_objects_must_forbid_additional_properties():
+    from core.eagle_config import Catalog
+
+    loose = {"type": "object", "properties": {"people": {"type": "integer"}}}
+    with pytest.raises(ValidationError, match="additionalProperties"):
+        Catalog(instructions="x", event_types=[EVENT], extra_schema=loose)
+
+
+def test_extra_schema_rejects_length_limits():
+    from core.eagle_config import Catalog
+
+    schema = {
+        "type": "object",
+        "properties": {"plate": {"type": "string", "maxLength": 8}},
+        "required": ["plate"],
+        "additionalProperties": False,
+    }
+    with pytest.raises(ValidationError, match="maxLength"):
+        Catalog(instructions="x", event_types=[EVENT], extra_schema=schema)
+
+
+def test_extra_schema_valid_is_accepted():
+    from core.eagle_config import Catalog
+
+    schema = {
+        "type": "object",
+        "properties": {"people": {"type": "integer"}},
+        "required": ["people"],
+        "additionalProperties": False,
+    }
+    assert Catalog(instructions="x", event_types=[EVENT], extra_schema=schema).extra_schema

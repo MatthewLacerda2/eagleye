@@ -26,15 +26,23 @@ def jpeg(shade: int = 100, block: bool = False) -> bytes:
     return buffer.getvalue()
 
 
+class SessionTracker:
+    """Counts how many worker sessions are open right now."""
+
+    open = 0
+
+
 class FakeClaude:
     """Answers for every camera that got a frame; reports `events` for each."""
 
     def __init__(self, events: list[str] | None = None, fail: bool = False):
         self.events, self.fail, self.calls = events or [], fail, []
+        self.sessions_open_during_calls: list[int] = []
         self.messages = self
 
     async def create(self, **request):
         self.calls.append(request)
+        self.sessions_open_during_calls.append(SessionTracker.open)
         texts = [b["text"] for b in request["messages"][0]["content"] if b["type"] == "text"]
         cams = [m.group(1) for t in texts if (m := re.match(r'Camera "([^"]+)"', t))]
         body = {
@@ -58,16 +66,26 @@ class Clock:
         return self.now
 
 
+grabs_with_session_open: list[int] = []
+
+
 @pytest.fixture
 def make_deps(db_session, tmp_path):
+    grabs_with_session_open.clear()
+
     def _make(feed: dict[str, bytes | None], claude: FakeClaude, clock: Clock, **overrides):
         settings = Settings(FRAMES_DIR=str(tmp_path / "frames"), **overrides)
 
         @asynccontextmanager
         async def session_factory():
-            yield db_session
+            SessionTracker.open += 1
+            try:
+                yield db_session
+            finally:
+                SessionTracker.open -= 1
 
         async def grab(url: str, timeout_s: float, ffmpeg_bin: str) -> bytes | None:
+            grabs_with_session_open.append(SessionTracker.open)
             return feed.get(url.rsplit("/", 1)[-1].removesuffix(".m3u8"))
 
         catalog = Catalog(

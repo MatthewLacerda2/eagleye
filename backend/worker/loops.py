@@ -10,7 +10,6 @@ from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-import anthropic
 import httpx
 from prometheus_client import start_http_server
 
@@ -21,7 +20,7 @@ from repositories import observations as observations_repo
 from repositories import sites as sites_repo
 from services import metrics
 from services.alerts import AlertSender
-from services.analyzer import Analyzer
+from services.analyzer import Analyzer, build_client
 from services.capture import grab_frame
 from services.change_filter import CameraChangeState, ChangeFilter
 from services.config_sync import sync_config
@@ -113,7 +112,7 @@ async def main() -> None:
         session_factory=SessionLocal,
         grab=grab_frame,
         change_filter=ChangeFilter(settings),
-        analyzer=Analyzer(anthropic.AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY), settings),
+        analyzer=Analyzer(build_client(settings), settings),
         alert_sender=AlertSender(http, settings),
         catalog=catalog,
         settings=settings,

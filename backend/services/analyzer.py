@@ -86,6 +86,15 @@ def _parse(text: str, cameras: set[str], events: set[str]) -> list[CameraResult]
     return results
 
 
+def build_client(settings: Settings) -> anthropic.AsyncAnthropic:
+    """The Claude client, with a timeout so a stalled call cannot hold a site for long."""
+    return anthropic.AsyncAnthropic(
+        api_key=settings.ANTHROPIC_API_KEY,
+        timeout=settings.ANALYSIS_TIMEOUT_SECONDS,
+        max_retries=2,
+    )
+
+
 class Analyzer:
     """Runs one request; every failure becomes a ``failed`` outcome, never an exception."""
 
@@ -126,6 +135,6 @@ class Analyzer:
         text = "".join(b.text for b in response.content if b.type == "text")
         try:
             results = _parse(text, valid_cameras, valid_events)
-        except (ValueError, KeyError, TypeError) as exc:
+        except Exception as exc:  # any shape the schema should have prevented
             return self._outcome(response, started, status="failed", error=f"bad output: {exc}")
         return self._outcome(response, started, status="ok", results=results)

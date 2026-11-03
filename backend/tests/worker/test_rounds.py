@@ -4,11 +4,13 @@ from datetime import timedelta
 from decimal import Decimal
 from pathlib import Path
 
+import pytest
 from sqlalchemy import select
 
 from models import Analysis, Camera, Observation
 from repositories import analyses as analyses_repo
 from tests.factories import seed_site
+from tests.worker import conftest
 from tests.worker.conftest import Clock, FakeClaude, jpeg
 from worker.rounds import run_keepalive, run_site_round
 
@@ -85,3 +87,28 @@ async def test_keepalive_only_after_idle(db_session, make_deps):
     assert claude.calls[-1]["max_tokens"] == 1
     kinds = [a.kind for a in (await db_session.scalars(select(Analysis))).all()]
     assert sorted(kinds) == ["keepalive", "round"]
+
+
+async def test_no_database_session_held_during_io(db_session, make_deps):
+    # Captures take seconds and model calls longer; holding a pooled connection
+    # through them exhausts the pool once a few dozen sites overlap.
+    site = await seed_site(db_session)
+    claude, clock = FakeClaude(), Clock()
+    await run_site_round(make_deps({"a": jpeg(), "b": jpeg()}, claude, clock), site.id, {})
+    clock.now += timedelta(minutes=56)
+    await run_keepalive(make_deps({}, claude, clock), site.id)
+    assert conftest.grabs_with_session_open == [0, 0]
+    assert claude.sessions_open_during_calls == [0, 0]
+
+
+async def test_storage_failure_logs_the_unrecorded_cost(db_session, make_deps, monkeypatch, caplog):
+    site = await seed_site(db_session)
+
+    async def broken_create(session, **fields):
+        raise RuntimeError("db down")
+
+    monkeypatch.setattr(analyses_repo, "create", broken_create)
+    deps = make_deps({"a": jpeg()}, FakeClaude(), Clock())
+    with pytest.raises(RuntimeError):
+        await run_site_round(deps, site.id, {})
+    assert "unrecorded cost" in caplog.text

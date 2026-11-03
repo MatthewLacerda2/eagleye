@@ -77,3 +77,19 @@ async def test_analyzer_api_error_is_failed():
 async def test_keepalive_max_tokens_stop_is_ok():
     outcome = await _run(FakeClient("", stop_reason="max_tokens"), kind="keepalive")
     assert outcome.status == "ok" and outcome.results == []
+
+
+async def test_analyzer_non_object_entry_is_failed_not_raised():
+    outcome = await _run(FakeClient(json.dumps({"cameras": ["bow"]})))
+    assert outcome.status == "failed" and outcome.error.startswith("bad output")
+
+
+def test_client_has_a_bounded_timeout():
+    from services.analyzer import build_client
+
+    client = build_client(Settings(ANTHROPIC_API_KEY="k"))
+    assert client.timeout == 90 and client.max_retries == 2
+
+
+def test_default_max_tokens_leaves_room_for_thinking_over_20_images():
+    assert Settings().ANALYSIS_MAX_TOKENS >= 8000

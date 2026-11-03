@@ -61,6 +61,26 @@ def _unique(keys: list[str], what: str) -> None:
         seen.add(key)
 
 
+_UNSUPPORTED_KEYWORDS = ("minLength", "maxLength")
+
+
+def _check_output_schema(node: object, path: str = "extra_schema") -> None:
+    """Reject what the API's structured outputs refuse, so it fails at startup, not per call."""
+    if isinstance(node, list):
+        for i, item in enumerate(node):
+            _check_output_schema(item, f"{path}[{i}]")
+        return
+    if not isinstance(node, dict):
+        return
+    if node.get("type") == "object" and node.get("additionalProperties") is not False:
+        raise ValueError(f"{path}: every object needs additionalProperties: false")
+    for keyword in _UNSUPPORTED_KEYWORDS:
+        if keyword in node:
+            raise ValueError(f"{path}: {keyword} is not supported by structured outputs")
+    for key, value in node.items():
+        _check_output_schema(value, f"{path}.{key}")
+
+
 class Catalog(_Strict):
     """Everything the model is told to look for."""
 
@@ -71,6 +91,8 @@ class Catalog(_Strict):
     @model_validator(mode="after")
     def _unique_keys(self) -> "Catalog":
         _unique([e.key for e in self.event_types], "event type")
+        if self.extra_schema is not None:
+            _check_output_schema(self.extra_schema)
         return self
 
     def by_key(self) -> dict[str, EventType]:

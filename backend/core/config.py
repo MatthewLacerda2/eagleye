@@ -50,7 +50,10 @@ class Settings(BaseSettings):
     # --- Claude ---------------------------------------------------------------
     ANTHROPIC_API_KEY: str = ""
     ANTHROPIC_MODEL: str = "claude-haiku-5-5"
-    ANALYSIS_MAX_TOKENS: int = 4000
+    # Thinking counts against max_tokens; 20 images at medium effort need room.
+    ANALYSIS_MAX_TOKENS: int = 8000
+    # Per request; the SDK retries twice, so a stalled call costs at most ~3x this.
+    ANALYSIS_TIMEOUT_SECONDS: float = 90.0
     ANALYSIS_CONCURRENCY: int = Field(default=8, ge=1)
     MAX_CAMERAS_PER_CALL: int = Field(default=20, ge=1)
     DAILY_BUDGET_USD: float = 25.0

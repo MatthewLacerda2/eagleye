@@ -114,87 +114,116 @@ async def _store_analysis(
     started: datetime,
     outcome: AnalysisOutcome,
 ) -> uuid.UUID:
-    analysis = await analyses_repo.create(
-        session,
-        site_id=site.id,
-        kind=kind,
-        status=outcome.status,
-        error=outcome.error,
-        model=deps.settings.ANTHROPIC_MODEL,
-        stop_reason=outcome.stop_reason,
-        started_at=started,
-        latency_ms=outcome.latency_ms,
-        input_tokens=outcome.usage.input_tokens,
-        cache_read_tokens=outcome.usage.cache_read_tokens,
-        cache_write_tokens=outcome.usage.cache_write_tokens,
-        output_tokens=outcome.usage.output_tokens,
-        cost_usd=outcome.cost_usd,
-        raw_response=outcome.raw,
-    )
-    _record_metrics(kind, outcome)
+    try:
+        analysis = await analyses_repo.create(
+            session,
+            site_id=site.id,
+            kind=kind,
+            status=outcome.status,
+            error=outcome.error,
+            model=deps.settings.ANTHROPIC_MODEL,
+            stop_reason=outcome.stop_reason,
+            started_at=started,
+            latency_ms=outcome.latency_ms,
+            input_tokens=outcome.usage.input_tokens,
+            cache_read_tokens=outcome.usage.cache_read_tokens,
+            cache_write_tokens=outcome.usage.cache_write_tokens,
+            output_tokens=outcome.usage.output_tokens,
+            cost_usd=outcome.cost_usd,
+            raw_response=outcome.raw,
+        )
+    except Exception:
+        # The call was billed; without this row the daily budget undercounts.
+        logger.error(
+            "could not store a %s analysis for site %s: unrecorded cost US$%s (%s)",
+            kind,
+            site.key,
+            outcome.cost_usd,
+            outcome.usage,
+        )
+        raise
+    finally:
+        _record_metrics(kind, outcome)
     return analysis.id
 
 
+async def _alert(deps: RoundDeps, session: AsyncSession, site: Site, stored: list) -> None:
+    if deps.alert_sender is None:
+        return
+    for camera, obs in stored:
+        if obs.events:
+            deliveries = await deps.alert_sender.send(
+                session, site, camera, obs, deps.catalog.by_key()
+            )
+            for delivery in deliveries:
+                metrics.alerts_total.labels(delivery.status).inc()
+    await session.commit()
+
+
 async def _analyze_chunk(
-    deps: RoundDeps, session: AsyncSession, site: Site, chunk: list[_Pending], now: datetime
+    deps: RoundDeps, site: Site, chunk: list[_Pending], now: datetime
 ) -> uuid.UUID:
     round_frames = [RoundFrame(p.camera.key, p.camera.label, p.frame.jpeg) for p in chunk]
     request = build_request(deps.catalog, site, site.cameras, round_frames, now, deps.settings)
     event_keys = {e.key for e in deps.catalog.event_types}
-    async with deps.analysis_slots:
+    async with deps.analysis_slots:  # no database session is open during the call
         outcome = await deps.analyzer.run(
             request, {p.camera.key for p in chunk}, event_keys, "round"
         )
-    analysis_id = await _store_analysis(session, deps, site, "round", now, outcome)
     by_key = {p.camera.key: p for p in chunk}
-    stored = []
-    for result in outcome.results if outcome.status == "ok" else []:
-        pending = by_key[result.camera_key]
-        path = frames.frame_path(deps.settings.FRAMES_DIR, site.key, pending.camera.key, now)
-        await asyncio.to_thread(frames.write, path, pending.frame.jpeg)
-        obs = await observations_repo.create(
-            session,
-            analysis_id=analysis_id,
-            camera_id=pending.camera.id,
-            observed_at=now,
-            events=result.events,
-            description=result.description,
-            extra=result.extra,
-            frame_path=path,
-        )
-        await sites_repo.mark_sent(session, pending.camera, path, now)
-        deps.change_filter.mark_sent(pending.state, pending.frame.thumb, now)
-        for event in result.events:
-            metrics.observations_events_total.labels(event).inc()
-        stored.append((pending.camera, obs))
-    await session.commit()
-    if deps.alert_sender is not None:
-        for camera, obs in stored:
-            if obs.events:
-                deliveries = await deps.alert_sender.send(
-                    session, site, camera, obs, deps.catalog.by_key()
-                )
-                for delivery in deliveries:
-                    metrics.alerts_total.labels(delivery.status).inc()
+    async with deps.session_factory() as session:
+        analysis_id = await _store_analysis(session, deps, site, "round", now, outcome)
+        stored = []
+        for result in outcome.results if outcome.status == "ok" else []:
+            pending = by_key[result.camera_key]
+            path = frames.frame_path(deps.settings.FRAMES_DIR, site.key, pending.camera.key, now)
+            await asyncio.to_thread(frames.write, path, pending.frame.jpeg)
+            obs = await observations_repo.create(
+                session,
+                analysis_id=analysis_id,
+                camera_id=pending.camera.id,
+                observed_at=now,
+                events=result.events,
+                description=result.description,
+                extra=result.extra,
+                frame_path=path,
+            )
+            await sites_repo.mark_sent(session, pending.camera.id, path, now)
+            deps.change_filter.mark_sent(pending.state, pending.frame.thumb, now)
+            for event in result.events:
+                metrics.observations_events_total.labels(event).inc()
+            stored.append((pending.camera, obs))
         await session.commit()
+        await _alert(deps, session, site, stored)
     return analysis_id
+
+
+async def _load_site(deps: RoundDeps, site_id: uuid.UUID) -> Site | None:
+    async with deps.session_factory() as session:
+        site = await sites_repo.get_site(session, site_id)
+    return site if site is not None and site.enabled and site.cameras else None
 
 
 async def run_site_round(
     deps: RoundDeps, site_id: uuid.UUID, states: dict[uuid.UUID, CameraChangeState]
 ) -> RoundReport:
-    """Capture every camera of the site, analyze the changed ones, store and alert."""
+    """Capture every camera of the site, analyze the changed ones, store and alert.
+
+    Each database phase opens and closes its own session: captures and model
+    calls take seconds, and holding a pooled connection through them would
+    exhaust the pool once many sites overlap.
+    """
+    site = await _load_site(deps, site_id)
+    if site is None:
+        return RoundReport()
+    now = deps.clock()
+    captures = await asyncio.gather(*(_capture(deps, c) for c in site.cameras))
+    pending: list[_Pending] = []
     async with deps.session_factory() as session:
-        site = await sites_repo.get_site(session, site_id)
-        if site is None or not site.enabled or not site.cameras:
-            return RoundReport()
-        now = deps.clock()
-        captures = await asyncio.gather(*(_capture(deps, c) for c in site.cameras))
-        pending: list[_Pending] = []
         for camera, frame in zip(site.cameras, captures, strict=True):
-            await sites_repo.set_camera_status(
-                session, camera, "online" if frame else "offline", now
-            )
+            status = "online" if frame else "offline"
+            camera.status = status
+            await sites_repo.set_camera_status(session, camera.id, status, now)
             if frame is None:
                 continue
             state = states.setdefault(
@@ -207,18 +236,19 @@ async def run_site_round(
                 pending.append(_Pending(camera, state, frame))
             else:
                 metrics.frames_skipped_total.labels(decision.reason).inc()
+        blocked = bool(pending) and await _budget_reached(deps, session, now)
         await session.commit()
-        captured = sum(1 for f in captures if f is not None)
-        report = RoundReport(captured=captured, offline=len(captures) - captured)
-        if not pending or await _budget_reached(deps, session, now):
-            return report
-        size = deps.settings.MAX_CAMERAS_PER_CALL
-        ids = [
-            await _analyze_chunk(deps, session, site, pending[i : i + size], now)
-            for i in range(0, len(pending), size)
-        ]
-        sent = sum(1 for p in pending if p.state.last_sent_at == now)
-        return RoundReport(report.captured, report.offline, sent, ids)
+    captured = sum(1 for f in captures if f is not None)
+    report = RoundReport(captured=captured, offline=len(captures) - captured)
+    if not pending or blocked:
+        return report
+    size = deps.settings.MAX_CAMERAS_PER_CALL
+    ids = [
+        await _analyze_chunk(deps, site, pending[i : i + size], now)
+        for i in range(0, len(pending), size)
+    ]
+    sent = sum(1 for p in pending if p.state.last_sent_at == now)
+    return RoundReport(report.captured, report.offline, sent, ids)
 
 
 async def run_keepalive(deps: RoundDeps, site_id: uuid.UUID) -> bool:
@@ -235,9 +265,10 @@ async def run_keepalive(deps: RoundDeps, site_id: uuid.UUID) -> bool:
         idle = timedelta(minutes=settings.KEEPALIVE_AFTER_MINUTES)
         if last is None or now - last < idle or await _budget_reached(deps, session, now):
             return False
-        request = build_keepalive(deps.catalog, site, site.cameras, now, settings)
-        async with deps.analysis_slots:
-            outcome = await deps.analyzer.run(request, set(), set(), "keepalive")
+    request = build_keepalive(deps.catalog, site, site.cameras, now, settings)
+    async with deps.analysis_slots:
+        outcome = await deps.analyzer.run(request, set(), set(), "keepalive")
+    async with deps.session_factory() as session:
         await _store_analysis(session, deps, site, "keepalive", now, outcome)
         await session.commit()
-        return True
+    return True

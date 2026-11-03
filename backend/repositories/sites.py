@@ -109,20 +109,24 @@ async def list_cameras_with_site(session: AsyncSession) -> list[Camera]:
 
 
 async def set_camera_status(
-    session: AsyncSession, camera: Camera, status: str, at: datetime
+    session: AsyncSession, camera_id: uuid.UUID, status: str, at: datetime
 ) -> None:
     """Record a capture attempt's outcome."""
-    camera.status = status
+    values: dict[str, object] = {"status": status}
     if status == "online":
-        camera.last_capture_at = at
-    await session.flush()
+        values["last_capture_at"] = at
+    await session.execute(update(Camera).where(Camera.id == camera_id).values(**values))
 
 
-async def mark_sent(session: AsyncSession, camera: Camera, frame_path: str, at: datetime) -> None:
+async def mark_sent(
+    session: AsyncSession, camera_id: uuid.UUID, frame_path: str, at: datetime
+) -> None:
     """Record the frame most recently sent to the model."""
-    camera.last_sent_at = at
-    camera.last_sent_frame_path = frame_path
-    await session.flush()
+    await session.execute(
+        update(Camera)
+        .where(Camera.id == camera_id)
+        .values(last_sent_at=at, last_sent_frame_path=frame_path)
+    )
 
 
 async def count_online(session: AsyncSession) -> int:
