@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[codz]
+.pytest_cache/
+.ruff_cache/
+
+# Python build output. Anchored to the repo root so the pattern does not also
+# ignore frontend/src/lib (the typed API SDK layer).
+/lib/
+
+# Environments and secrets
+.venv/
+venv/
+.env
+# Keep the example env tracked.
+!.env.example
+
+# Frontend (Node/Bun)
+node_modules/
+frontend/dist/
+.vite/
+*.local
+
+# Editor and OS noise
+.DS_Store
+.idea/
+
+# Parallel Claude Code agents check out a full worktree here; never tracked.
+# Scoped so a real .claude/settings.json can still be committed.
+.claude/worktrees/
+.superpowers/
