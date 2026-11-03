@@ -1,0 +1,63 @@
+# What the watchman looks for. Copy to config/local/catalog.yaml and edit.
+#
+# Every event type has a stable `key` (used in alerts, metrics and reviews), a
+# `description` of what counts, and `counter_examples` of what looks like it but
+# does not count — the cheapest way to cut false alarms, since this whole file
+# is prompt-cached.
+
+instructions: |
+  You are the night watch of a river vessel pushing a convoy of barges. The
+  cameras cover the bow and the barges, the side walkways, the aft deck, the
+  engine room, the mess room and the wheelhouse. Crew members working, walking,
+  eating or resting off duty are normal. Report only the events listed below,
+  and only when the picture clearly shows them.
+
+event_types:
+  - key: smoking
+    name: Smoking on board
+    description: >-
+      A person is smoking: a lit cigarette, cigar or pipe in hand or mouth, or
+      visible smoke coming from the person's face.
+    counter_examples:
+      - Exhaust or steam from machinery.
+      - Breath condensation on a cold night.
+      - A person holding a pen, a radio antenna or another small object near the mouth.
+    severity: warning
+    alert: true
+
+  - key: phone_use
+    name: Phone use on duty
+    description: >-
+      A person who is on duty — at the helm in the wheelhouse, operating deck
+      machinery or a winch, or handling mooring lines — is looking at or using
+      a mobile phone.
+    counter_examples:
+      - A phone used at the mess table or in a cabin during a break.
+      - The vessel's fixed radio or intercom handset.
+      - A handheld VHF radio.
+    severity: warning
+    alert: true
+
+  - key: sleeping
+    name: Sleeping on duty
+    description: >-
+      A person who should be on watch — at the helm or in the wheelhouse while
+      the vessel is under way — is asleep: eyes closed with the head down or
+      leaning back, slumped and motionless.
+    counter_examples:
+      - Someone resting in the mess room or a cabin.
+      - A person looking down at instruments, a chart or a logbook.
+    severity: critical
+    alert: true
+
+  - key: other_vessel
+    name: Another vessel approaching
+    description: >-
+      A vessel that is not part of the own convoy is approaching or alongside:
+      another tug or pusher, a barge, a speedboat, a jet ski or a small boat.
+    counter_examples:
+      - The own convoy's barges, always visible ahead of the bow.
+      - Vessels far away on the horizon or moored at a distant bank, not closing in.
+      - Floating vegetation, logs or debris.
+    severity: critical
+    alert: true

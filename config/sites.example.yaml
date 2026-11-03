@@ -1,0 +1,25 @@
+# Where to look. Copy to config/local/sites.yaml and edit.
+#
+# A site is a group of cameras sharing context (a vessel, a building). Camera
+# `source_url` is anything ffmpeg can read: HLS (.m3u8), RTSP, HTTP MJPEG...
+# Optional per camera: `crop` (look only at part of the frame) and `ignore`
+# (rectangles the change filter skips) — both in fractions of the frame.
+
+sites:
+  - key: example-vessel
+    name: Example vessel
+    timezone: America/Sao_Paulo
+    context: |
+      A river pusher with a crew of eight, pushing up to twenty barges of grain
+      or ore. Under way day and night.
+    cameras:
+      - key: bow
+        label: Bow
+        description: Looks forward over the barges from the pusher's bow.
+        source_url: https://example.invalid/hls/cam1.m3u8
+      - key: wheelhouse
+        label: Wheelhouse
+        description: The helm station, from behind the captain's chair.
+        source_url: https://example.invalid/hls/cam2.m3u8
+        ignore:
+          - {x: 0.0, y: 0.92, w: 0.35, h: 0.08}  # the DVR's date overlay

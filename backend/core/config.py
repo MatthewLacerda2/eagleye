@@ -40,10 +40,60 @@ class Settings(BaseSettings):
     # global throttle off for deployments that rate-limit at the gateway.
     RATE_LIMIT_DEFAULT: str = "10/second"
 
+    # --- Eagleye: configuration files and storage ---------------------------
+    CATALOG_PATH: str = "config/catalog.example.yaml"
+    SITES_PATH: str = "config/sites.example.yaml"
+    FRAMES_DIR: str = "data/frames"
+    PUBLIC_BASE_URL: str = "http://localhost:3000"
+    RETENTION_DAYS: int = Field(default=14, ge=1)
+
+    # --- Claude ---------------------------------------------------------------
+    ANTHROPIC_API_KEY: str = ""
+    ANTHROPIC_MODEL: str = "claude-haiku-5-5"
+    ANALYSIS_MAX_TOKENS: int = 4000
+    ANALYSIS_CONCURRENCY: int = Field(default=8, ge=1)
+    MAX_CAMERAS_PER_CALL: int = Field(default=20, ge=1)
+    DAILY_BUDGET_USD: float = 25.0
+    KEEPALIVE_ENABLED: bool = True
+    KEEPALIVE_AFTER_MINUTES: int = Field(default=55, ge=1, le=59)
+    # Haiku 5.5 list prices (prompts up to 100K tokens), per million tokens.
+    PRICE_INPUT_PER_MTOK: float = 0.10
+    PRICE_OUTPUT_PER_MTOK: float = 0.50
+    PRICE_CACHE_READ_MULT: float = 0.1
+    PRICE_CACHE_WRITE_1H_MULT: float = 2.0
+
+    # --- Rounds and capture ---------------------------------------------------
+    ROUND_INTERVAL_SECONDS: int = Field(default=120, ge=10)
+    CAPTURE_FFMPEG_BIN: str = "ffmpeg"
+    CAPTURE_TIMEOUT_SECONDS: float = 20.0
+    CAPTURE_CONCURRENCY: int = Field(default=16, ge=1)
+    FRAME_MAX_SIDE: int = Field(default=640, ge=64)
+
+    # --- Change filter --------------------------------------------------------
+    CHANGE_GRID_COLS: int = 16
+    CHANGE_GRID_ROWS: int = 12
+    CHANGE_CELL_THRESHOLD: float = 12.0
+    CHANGE_MIN_CELLS: int = 2
+    MAX_UNSENT_MINUTES: int = 60
+    AUTOMASK_WINDOW: int = 30
+    AUTOMASK_MIN_SAMPLES: int = 10
+    AUTOMASK_RATIO: float = 0.8
+
+    # --- Alerts and metrics ---------------------------------------------------
+    ALERT_WEBHOOK_URLS: str = ""
+    ALERT_WEBHOOK_SECRET: str = ""
+    ALERT_COOLDOWN_MINUTES: int = 10
+    METRICS_PORT: int = 9100
+
     @property
     def cors_origins_list(self) -> list[str]:
         """Parse the comma-separated CORS origins into a list."""
         return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
+
+    @property
+    def alert_webhook_urls_list(self) -> list[str]:
+        """Parse the comma-separated alert webhook URLs into a list."""
+        return [url.strip() for url in self.ALERT_WEBHOOK_URLS.split(",") if url.strip()]
 
 
 @lru_cache
