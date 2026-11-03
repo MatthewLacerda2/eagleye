@@ -17,6 +17,7 @@ from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 
+import models  # noqa: F401  (registers every table on Base.metadata)
 from core.config import get_settings
 from core.database import normalize_database_url
 from core.rate_limiter import limiter

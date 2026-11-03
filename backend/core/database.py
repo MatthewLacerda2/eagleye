@@ -1,20 +1,23 @@
 """Async database engine, session factory, and bootstrap routine.
 
 `init_db()` is the only place outside `repositories/` that issues SQL, and it
-does so purely as an application-bootstrap step (extension, table creation,
-admin seed). Schema upgrades beyond additive `create_all` should go through
-Alembic; this skeleton intentionally ships no migrations.
+does so purely as an application-bootstrap step: Alembic `upgrade head` (the
+schema, pgvector included) and the admin seed.
 """
 
-from sqlalchemy import select, text
+import asyncio
+from pathlib import Path
+
+from alembic.config import Config
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker,
     create_async_engine,
 )
 
+from alembic import command
 from core.config import get_settings
-from models.base import Base
 
 
 def normalize_database_url(url: str) -> str:
@@ -44,16 +47,19 @@ SessionLocal = async_sessionmaker(
 )
 
 
+ALEMBIC_INI = Path(__file__).resolve().parents[1] / "alembic.ini"
+
+
+def _upgrade_head() -> None:
+    config = Config(str(ALEMBIC_INI))
+    config.set_main_option("script_location", str(ALEMBIC_INI.parent / "alembic"))
+    command.upgrade(config, "head")
+
+
 async def init_db() -> None:
-    """Bootstrap the database: pgvector extension, tables, default admin."""
-    # Import models so their tables are registered on `Base.metadata`.
-    import models  # noqa: F401
-
-    async with engine.begin() as conn:
-        await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
-        # Additive only. Alembic is the upgrade path for non-additive changes.
-        await conn.run_sync(Base.metadata.create_all)
-
+    """Bootstrap the database: migrate to the latest schema, seed the admin."""
+    # Alembic's env.py runs its own event loop, so it gets a thread of its own.
+    await asyncio.to_thread(_upgrade_head)
     await _seed_default_admin()
 
 
