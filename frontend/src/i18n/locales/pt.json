@@ -4,12 +4,30 @@
     "nav": {
       "observations": "Observações",
       "login": "Entrar",
-      "logout": "Sair"
+      "logout": "Sair",
+      "cameras": "Câmeras"
     }
   },
   "observations": {
     "heading": "Observações",
-    "subheading": "O que o vigia viu, mais recentes primeiro."
+    "subheading": "O que o vigia viu, mais recentes primeiro.",
+    "onlyEvents": "Só eventos",
+    "unreviewed": "Não revisadas",
+    "allSites": "Todos os locais",
+    "allEvents": "Todos os eventos",
+    "loading": "Carregando observações…",
+    "error": "Não foi possível carregar as observações.",
+    "empty": "Nada para mostrar.",
+    "loadMore": "Carregar mais",
+    "noEvents": "Sem eventos",
+    "columns": {
+      "frame": "Imagem",
+      "when": "Quando",
+      "where": "Onde",
+      "events": "Eventos",
+      "description": "O que viu",
+      "review": "Revisão"
+    }
   },
   "login": {
     "heading": "Entrar",
@@ -19,5 +37,51 @@
     "submit": "Entrar",
     "submitting": "Entrando…",
     "error": "Falha no login."
+  },
+  "detail": {
+    "back": "Voltar às observações",
+    "loading": "Carregando…",
+    "error": "Não foi possível carregar esta observação.",
+    "analysis": "Chamada ao modelo",
+    "model": "Modelo",
+    "status": "Status",
+    "latency": "Latência",
+    "tokens": "Tokens (entrada · leitura de cache · escrita de cache · saída)",
+    "cost": "Custo",
+    "siblings": "Outras câmeras na mesma chamada",
+    "ms": "{{value}} ms",
+    "usd": "US$ {{value}}"
+  },
+  "review": {
+    "correct": "Certo",
+    "incorrect": "Errado",
+    "save": "Salvar revisão",
+    "cancel": "Cancelar",
+    "wrong": "Errado: {{name}}",
+    "missed": "Perdido: {{name}}",
+    "notePlaceholder": "Nota opcional",
+    "state": {
+      "correct": "Revisado: certo",
+      "incorrect": "Revisado: errado"
+    }
+  },
+  "cameras": {
+    "heading": "Câmeras",
+    "subheading": "O vigia está mesmo vigiando?",
+    "loading": "Carregando câmeras…",
+    "error": "Não foi possível carregar as câmeras.",
+    "lastCapture": "Última captura",
+    "lastSent": "Última enviada ao modelo",
+    "status": {
+      "online": "No ar",
+      "offline": "Fora do ar",
+      "unknown": "Ainda não vista"
+    },
+    "disabled": "Desativada"
+  },
+  "frame": {
+    "loading": "Carregando imagem…",
+    "missing": "Sem imagem",
+    "alt": "Imagem de {{camera}}"
   }
 }

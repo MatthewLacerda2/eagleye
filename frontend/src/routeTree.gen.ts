@@ -12,6 +12,8 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as AuthenticatedCamerasRouteImport } from './routes/_authenticated/cameras'
+import { Route as AuthenticatedObservationsIdRouteImport } from './routes/_authenticated/observations.$id'
 
 const AuthenticatedRoute = AuthenticatedRouteImport.update({
   id: '/_authenticated',
@@ -27,27 +29,50 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedCamerasRoute = AuthenticatedCamerasRouteImport.update({
+  id: '/cameras',
+  path: '/cameras',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedObservationsIdRoute =
+  AuthenticatedObservationsIdRouteImport.update({
+    id: '/observations/$id',
+    path: '/observations/$id',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/login': typeof LoginRoute
+  '/cameras': typeof AuthenticatedCamerasRoute
+  '/observations/$id': typeof AuthenticatedObservationsIdRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
+  '/cameras': typeof AuthenticatedCamerasRoute
   '/': typeof AuthenticatedIndexRoute
+  '/observations/$id': typeof AuthenticatedObservationsIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/login': typeof LoginRoute
+  '/_authenticated/cameras': typeof AuthenticatedCamerasRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/observations/$id': typeof AuthenticatedObservationsIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login'
+  fullPaths: '/' | '/login' | '/cameras' | '/observations/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/login' | '/'
-  id: '__root__' | '/_authenticated' | '/login' | '/_authenticated/'
+  to: '/login' | '/cameras' | '/' | '/observations/$id'
+  id:
+    | '__root__'
+    | '/_authenticated'
+    | '/login'
+    | '/_authenticated/cameras'
+    | '/_authenticated/'
+    | '/_authenticated/observations/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -78,15 +103,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/cameras': {
+      id: '/_authenticated/cameras'
+      path: '/cameras'
+      fullPath: '/cameras'
+      preLoaderRoute: typeof AuthenticatedCamerasRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/observations/$id': {
+      id: '/_authenticated/observations/$id'
+      path: '/observations/$id'
+      fullPath: '/observations/$id'
+      preLoaderRoute: typeof AuthenticatedObservationsIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
   }
 }
 
 interface AuthenticatedRouteChildren {
+  AuthenticatedCamerasRoute: typeof AuthenticatedCamerasRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedObservationsIdRoute: typeof AuthenticatedObservationsIdRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedCamerasRoute: AuthenticatedCamerasRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedObservationsIdRoute: AuthenticatedObservationsIdRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(

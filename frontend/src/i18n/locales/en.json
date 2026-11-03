@@ -4,12 +4,30 @@
     "nav": {
       "observations": "Observations",
       "login": "Login",
-      "logout": "Log out"
+      "logout": "Log out",
+      "cameras": "Cameras"
     }
   },
   "observations": {
     "heading": "Observations",
-    "subheading": "What the watchman saw, newest first."
+    "subheading": "What the watchman saw, newest first.",
+    "onlyEvents": "Only events",
+    "unreviewed": "Not reviewed",
+    "allSites": "All sites",
+    "allEvents": "All events",
+    "loading": "Loading observations…",
+    "error": "Could not load observations.",
+    "empty": "Nothing to show.",
+    "loadMore": "Load more",
+    "noEvents": "No events",
+    "columns": {
+      "frame": "Frame",
+      "when": "When",
+      "where": "Where",
+      "events": "Events",
+      "description": "What it saw",
+      "review": "Review"
+    }
   },
   "login": {
     "heading": "Sign in",
@@ -19,5 +37,51 @@
     "submit": "Sign in",
     "submitting": "Signing in…",
     "error": "Login failed."
+  },
+  "detail": {
+    "back": "Back to observations",
+    "loading": "Loading…",
+    "error": "Could not load this observation.",
+    "analysis": "Model call",
+    "model": "Model",
+    "status": "Status",
+    "latency": "Latency",
+    "tokens": "Tokens (input · cache read · cache write · output)",
+    "cost": "Cost",
+    "siblings": "Other cameras in the same call",
+    "ms": "{{value}} ms",
+    "usd": "US$ {{value}}"
+  },
+  "review": {
+    "correct": "Correct",
+    "incorrect": "Incorrect",
+    "save": "Save review",
+    "cancel": "Cancel",
+    "wrong": "Wrong: {{name}}",
+    "missed": "Missed: {{name}}",
+    "notePlaceholder": "Optional note",
+    "state": {
+      "correct": "Reviewed: correct",
+      "incorrect": "Reviewed: incorrect"
+    }
+  },
+  "cameras": {
+    "heading": "Cameras",
+    "subheading": "Is the watch actually watching?",
+    "loading": "Loading cameras…",
+    "error": "Could not load cameras.",
+    "lastCapture": "Last capture",
+    "lastSent": "Last sent to the model",
+    "status": {
+      "online": "Online",
+      "offline": "Offline",
+      "unknown": "Not seen yet"
+    },
+    "disabled": "Disabled"
+  },
+  "frame": {
+    "loading": "Loading frame…",
+    "missing": "No frame",
+    "alt": "Frame from {{camera}}"
   }
 }

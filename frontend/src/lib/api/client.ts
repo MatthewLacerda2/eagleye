@@ -28,14 +28,28 @@ interface RequestOptions {
   body?: unknown;
 }
 
+function authHeaders(): Record<string, string> {
+  const token = authStore.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+/** A binary GET (camera frames), with the same auth and error handling. */
+export async function requestBlob(path: string): Promise<Blob> {
+  const response = await fetch(`${API_BASE}${path}`, {
+    headers: authHeaders(),
+  });
+  if (!response.ok) {
+    throw new ApiError(response.status, await detail(response));
+  }
+  return response.blob();
+}
+
 export async function request<T>(
   path: string,
   options: RequestOptions = {},
 ): Promise<T> {
   const { method = "GET", body } = options;
-  const headers: Record<string, string> = {};
-  const token = authStore.getToken();
-  if (token) headers.Authorization = `Bearer ${token}`;
+  const headers = authHeaders();
   if (body !== undefined) headers["Content-Type"] = "application/json";
 
   const response = await fetch(`${API_BASE}${path}`, {
