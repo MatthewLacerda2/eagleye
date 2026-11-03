@@ -93,3 +93,11 @@ def test_client_has_a_bounded_timeout():
 
 def test_default_max_tokens_leaves_room_for_thinking_over_20_images():
     assert Settings().ANALYSIS_MAX_TOKENS >= 8000
+
+
+async def test_long_description_is_cut_at_a_word_with_an_ellipsis():
+    long = "Side walkway over brown river water and yellow railings; no other vessel or phone, smoking or sleeping"
+    body = {"cameras": [{"camera": "bow", "events": [], "description": long}]}
+    description = (await _run(FakeClient(json.dumps(body)))).results[0].description
+    assert len(description) <= 100 and description.endswith("…")
+    assert long.startswith(description[:-1]) and long[len(description) - 1] == " "

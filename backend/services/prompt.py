@@ -31,8 +31,9 @@ _RULES = f"""Rules:
 - Judge only what is visible in the frame. When unsure, do not report the event.
 - Return one entry per camera you received a frame for, with "events": [] when nothing \
 listed is happening.
-- "description": at most {DESCRIPTION_MAX} characters, in English, saying what the frame \
-shows; when an event is reported, say what in the frame shows it.
+- "description": one short sentence in English, about 15 words and never over \
+{DESCRIPTION_MAX} characters, saying what the frame shows; when an event is reported, say \
+what in the frame shows it. Do not list the events that are absent.
 - A dark, blurred, fogged or frozen picture is not an event; say so in the description."""
 
 

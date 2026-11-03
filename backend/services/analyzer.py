@@ -72,6 +72,17 @@ def _usage(response: Any) -> Usage:
     )
 
 
+def _shorten(text: str) -> str:
+    """Fit the limit without cutting a word: the model counts characters poorly."""
+    text = text.strip()
+    if len(text) <= DESCRIPTION_MAX:
+        return text
+    cut = text[: DESCRIPTION_MAX - 1]
+    if " " in cut:
+        cut = cut[: cut.rindex(" ")]
+    return cut.rstrip(" ,;:.") + "…"
+
+
 def _parse(text: str, cameras: set[str], events: set[str]) -> list[CameraResult]:
     results = []
     for entry in json.loads(text)["cameras"]:
@@ -81,7 +92,7 @@ def _parse(text: str, cameras: set[str], events: set[str]) -> list[CameraResult]
         kept = [e for e in entry.get("events", []) if e in events]
         if len(kept) != len(entry.get("events", [])):
             logger.warning("model reported unknown events: %r", entry.get("events"))
-        description = str(entry.get("description", ""))[:DESCRIPTION_MAX]
+        description = _shorten(str(entry.get("description", "")))
         results.append(CameraResult(entry["camera"], kept, description, entry.get("extra")))
     return results
 
