@@ -5,13 +5,18 @@ These live up the tree so individual test files never redefine them. The app's
 session, so requests share the same transaction the test inspects.
 """
 
+from pathlib import Path
+
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 
-from api.deps import get_db
+from api.deps import get_catalog, get_db
+from core.eagle_config import load_catalog
 from main import app
 from repositories import users as users_repo
 from utils.security import create_access_token, hash_password
+
+EXAMPLE_CATALOG = Path(__file__).resolve().parents[3] / "config" / "catalog.example.yaml"
 
 
 @pytest_asyncio.fixture
@@ -22,6 +27,7 @@ async def client(db_session):
         yield db_session
 
     app.dependency_overrides[get_db] = _override_get_db
+    app.dependency_overrides[get_catalog] = lambda: load_catalog(str(EXAMPLE_CATALOG))
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac

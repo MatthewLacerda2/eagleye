@@ -1,14 +1,17 @@
-"""Shared FastAPI dependencies: database session and current user."""
+"""Shared FastAPI dependencies: database session, current user, event catalog."""
 
 import uuid
 from collections.abc import AsyncGenerator
+from functools import lru_cache
 
 import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from core.config import get_settings
 from core.database import SessionLocal
+from core.eagle_config import Catalog, load_catalog
 from models.user import User
 from repositories import users as users_repo
 from utils.security import decode_access_token
@@ -52,3 +55,9 @@ async def get_current_user(
     if user is None or not user.is_active:
         raise _CREDENTIALS_EXCEPTION
     return user
+
+
+@lru_cache
+def get_catalog() -> Catalog:
+    """The operator's event catalog, loaded once per process."""
+    return load_catalog(get_settings().CATALOG_PATH)

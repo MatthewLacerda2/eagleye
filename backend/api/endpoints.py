@@ -7,7 +7,7 @@ router requires a valid bearer token via ``get_current_user``.
 from fastapi import APIRouter, Depends
 
 from api.deps import get_current_user
-from api.v1 import auth, users
+from api.v1 import auth, cameras, catalog, observations, users
 
 api_router = APIRouter()
 
@@ -16,3 +16,5 @@ api_router.include_router(auth.router)
 
 # Protected.
 api_router.include_router(users.router, dependencies=[Depends(get_current_user)])
+for protected in (observations.router, cameras.router, catalog.router):
+    api_router.include_router(protected, dependencies=[Depends(get_current_user)])
