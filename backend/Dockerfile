@@ -19,7 +19,10 @@ COPY . .
 
 # Drop root only after the dependencies are installed system-wide.
 # Port 8000 is unprivileged, so uvicorn needs nothing beyond this.
-RUN useradd --create-home --uid 1001 app && chown -R app:app /app
+# /data/frames is created here so the named volume inherits app's ownership.
+RUN useradd --create-home --uid 1001 app \
+    && mkdir -p /data/frames \
+    && chown -R app:app /app /data
 USER app
 
 EXPOSE 8000

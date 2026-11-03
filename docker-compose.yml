@@ -1,3 +1,22 @@
+# Eagleye: `docker compose up -d` runs the watch and its admin.
+# `docker compose --profile monitoring up -d` adds Prometheus and Grafana.
+
+x-backend: &backend
+  build:
+    context: ./backend
+    dockerfile: Dockerfile
+  env_file:
+    - path: .env
+      required: false
+  environment: &backend-env
+    # Override host to reach the postgres service inside the compose network.
+    DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/eagleye
+    FRAMES_DIR: /data/frames
+  volumes:
+    - ./config:/app/config:ro
+    - frames:/data/frames
+  restart: unless-stopped
+
 services:
   postgres:
     build:
@@ -18,14 +37,9 @@ services:
       retries: 10
     restart: unless-stopped
 
+  # The API runs the database migrations on startup; the worker waits for it.
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    env_file: .env
-    environment:
-      # Override host to reach the postgres service inside the compose network.
-      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/eagleye
+    <<: *backend
     depends_on:
       postgres:
         condition: service_healthy
@@ -36,7 +50,13 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    restart: unless-stopped
+
+  worker:
+    <<: *backend
+    command: ["python", "-m", "worker"]
+    depends_on:
+      backend:
+        condition: service_healthy
 
   frontend:
     build:
@@ -48,5 +68,34 @@ services:
       - "3000:8080"
     restart: unless-stopped
 
+  prometheus:
+    image: prom/prometheus:v3.15.1
+    profiles: [monitoring]
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus:/prometheus
+    depends_on:
+      - worker
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:13.2.5
+    profiles: [monitoring]
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-change-me}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana:/var/lib/grafana
+    ports:
+      - "3001:3000"
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
 volumes:
   pgdata:
+  frames:
+  prometheus:
+  grafana:
