@@ -1,27 +1,15 @@
 {
   "app": {
-    "title": "Gold Standard",
+    "title": "Eagleye",
     "nav": {
-      "items": "Items",
+      "observations": "Observations",
       "login": "Login",
       "logout": "Log out"
     }
   },
-  "items": {
-    "heading": "Items",
-    "subheading": "Manage your items.",
-    "loading": "Loading items…",
-    "error": "Could not load items.",
-    "empty": "No items yet.",
-    "columns": {
-      "name": "Name",
-      "description": "Description"
-    },
-    "form": {
-      "namePlaceholder": "Item name",
-      "descriptionPlaceholder": "Description",
-      "submit": "Add item"
-    }
+  "observations": {
+    "heading": "Observations",
+    "subheading": "What the watchman saw, newest first."
   },
   "login": {
     "heading": "Sign in",

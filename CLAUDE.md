@@ -1,9 +1,17 @@
 # CLAUDE.md — the contract
 
-This is a **template repository**. It encodes battle-tested, "gold standard"
-patterns: a strict 4-layer backend, an SDK-layered frontend, a token-based
-design system, and a single `Makefile` that defines every quality gate. Build
-new features by following the worked `items` example through every layer.
+Eagleye is a self-hosted camera watchman: a worker grabs frames, skips the
+unchanged ones, asks Claude Haiku whether catalogued events are happening, and
+stores every decision for review (design:
+`docs/superpowers/specs/2026-11-02-eagleye-design.md`). It is built on the
+GoldStandard template: a strict 4-layer backend, an SDK-layered frontend, a
+token-based design system, and a single `Makefile` that defines every quality
+gate. Build new features by following the `observations` resource through
+every layer.
+
+The repository is public. Never commit a real camera address, a captured frame,
+or the name of a deployment's operator, its clients or its camera vendor; real
+configuration lives in the git-ignored `config/local/`.
 
 The rules below are load-bearing. They are enforced by automated gates, not by
 convention — keep them green.
@@ -189,8 +197,8 @@ to ask for a review.
   reviewer unbiased; run it on request for any PR, batch or not.
 - **Decisions are written down, never waited on.** A judgement call the issue
   left open is yours to take when something points the way — a rule in this
-  file, a convention the codebase already follows (the worked `items` example
-  first), or a run of past decisions in the same direction. Take it and record
+  file, a convention the codebase already follows (the `observations`
+  resource first), or a run of past decisions in the same direction. Take it and record
   it, with its reason, in the PR. A decision with none of those behind it goes
   back to the user, and the PR is a draft that names it. A check only a human
   can do (the page in a real browser, how it looks) never keeps a PR a draft:

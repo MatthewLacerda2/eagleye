@@ -19,15 +19,15 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/app"
+    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5442/eagleye"
 
     # RFC 7518 section 3.2 requires an HMAC key at least as long as the hash
     # output, so 32 bytes for SHA256. PyJWT only warns below that; we refuse to
     # start instead, so a weak signing key cannot reach production unnoticed.
     # 32 characters is always at least 32 bytes once UTF-8 encoded.
     JWT_SECRET: str = Field(default="change-me-in-production-min-32-bytes", min_length=32)
-    JWT_ISSUER: str = "goldstandard"
-    JWT_AUDIENCE: str = "goldstandard-app"
+    JWT_ISSUER: str = "eagleye"
+    JWT_AUDIENCE: str = "eagleye-admin"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
 
     DEFAULT_ADMIN_EMAIL: str = "admin@example.com"

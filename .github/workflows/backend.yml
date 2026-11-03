@@ -64,6 +64,10 @@ jobs:
         if: steps.gate.outputs.run == 'true'
         run: docker compose up -d --build --wait postgres
 
+      - name: Install ffmpeg
+        if: steps.gate.outputs.run == 'true'
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
+
       - uses: actions/setup-python@v7
         if: steps.gate.outputs.run == 'true'
         with:
@@ -82,6 +86,6 @@ jobs:
       - name: Run backend gates
         if: steps.gate.outputs.run == 'true'
         env:
-          DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/app
+          DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5442/eagleye
           JWT_SECRET: ci-secret-not-for-production-use-only
         run: make backend PYTHON=python

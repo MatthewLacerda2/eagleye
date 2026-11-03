@@ -48,8 +48,8 @@ So: **one branch at a time into `main` per layer**, the second rebased and
 re-verified. Across layers, do not bother.
 
 The exception cuts the other way, and it is the dangerous one. **Nothing checks
-the contract *between* the layers.** `frontend/src/lib/schemas/items.ts` says in
-its first line that it mirrors `backend/schemas/items.py`, and the mirroring is a
+the contract *between* the layers.** `frontend/src/lib/schemas/observations.ts` says in
+its first line that it mirrors `backend/schemas/observations.py`, and the mirroring is a
 human promise — no generated client, no shared schema, and the path filters mean
 the backend gate never even runs on a frontend-only change. Two branches that
 split one API change between them will both be green and the app will be broken.
@@ -269,7 +269,7 @@ batch is a hand-back.
 
 **Everything else is decided, written down, and not waited on.** A judgement call
 the issue left open — and that is not on the list above — takes the default the
-issue, `CLAUDE.md` or the worked `items` example points to; the pull request says
+issue, `CLAUDE.md` or the `observations` resource points to; the pull request says
 what was chosen and why. **A human check is never a hold either.** Some proof only
 a person can give: the page in a real browser, how it looks, a flow clicked
 through. Agents do not start the app (`CLAUDE.md`, *Server-start guardrails*), so

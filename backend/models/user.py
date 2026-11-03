@@ -7,7 +7,7 @@ from models.base import Base, TimestampedUUIDMixin
 
 
 class User(TimestampedUUIDMixin, Base):
-    """An application user able to authenticate and own items."""
+    """An application user able to authenticate into the admin."""
 
     __tablename__ = "users"
 

@@ -29,9 +29,12 @@ live in the root `Makefile` (`make backend`) and run identically in CI.
 
 ## Worked example
 
-`items` runs cleanly through every layer — `api/v1/items.py`,
-`schemas/items.py`, `repositories/items.py`, `models/item.py`. Copy its shape
-for new resources rather than inventing a new one.
+`observations` runs cleanly through every layer — `api/v1/observations.py`,
+`schemas/observations.py`, `repositories/observations.py`,
+`models/observation.py`. Copy its shape for new resources rather than inventing
+a new one. The worker (`worker/`) and `services/` call repositories the same
+way handlers do: they get a session, the repositories flush, the caller
+commits.
 
 ## Gate before pushing
 

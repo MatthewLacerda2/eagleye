@@ -6,9 +6,9 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: app
+      POSTGRES_DB: eagleye
     ports:
-      - "5432:5432"
+      - "5442:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -25,7 +25,7 @@ services:
     env_file: .env
     environment:
       # Override host to reach the postgres service inside the compose network.
-      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/app
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/eagleye
     depends_on:
       postgres:
         condition: service_healthy

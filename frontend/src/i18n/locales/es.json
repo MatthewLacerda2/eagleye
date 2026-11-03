@@ -1,27 +1,15 @@
 {
   "app": {
-    "title": "Gold Standard",
+    "title": "Eagleye",
     "nav": {
-      "items": "Artículos",
+      "observations": "Observaciones",
       "login": "Entrar",
       "logout": "Cerrar sesión"
     }
   },
-  "items": {
-    "heading": "Artículos",
-    "subheading": "Gestiona tus artículos.",
-    "loading": "Cargando artículos…",
-    "error": "No se pudieron cargar los artículos.",
-    "empty": "Aún no hay artículos.",
-    "columns": {
-      "name": "Nombre",
-      "description": "Descripción"
-    },
-    "form": {
-      "namePlaceholder": "Nombre del artículo",
-      "descriptionPlaceholder": "Descripción",
-      "submit": "Añadir artículo"
-    }
+  "observations": {
+    "heading": "Observaciones",
+    "subheading": "Lo que vio el vigilante, lo más reciente primero."
   },
   "login": {
     "heading": "Iniciar sesión",

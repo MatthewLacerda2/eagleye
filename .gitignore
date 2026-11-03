@@ -29,3 +29,7 @@ frontend/dist/
 # Scoped so a real .claude/settings.json can still be committed.
 .claude/worktrees/
 .superpowers/
+
+# Eagleye runtime data: real site/camera config and captured frames never enter git.
+config/local/
+data/

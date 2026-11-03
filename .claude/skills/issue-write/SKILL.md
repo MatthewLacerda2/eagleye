@@ -156,7 +156,7 @@ about**: the shape of the product is `architecture`, the machinery that constrai
 how it gets written is `infrastructure`, and something merely missing rather than
 wrong is `foundation`. Concretely — a layer boundary or an API contract is
 `architecture`; a `Makefile` gate or an eslint rule is `infrastructure`; an
-unwritten half of the `items` example is `foundation`.
+unwritten half of a resource is `foundation`.
 
 **Stage — at most one, and its absence means ready:**
 
