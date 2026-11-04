@@ -46,6 +46,7 @@ class Settings(BaseSettings):
     FRAMES_DIR: str = "data/frames"
     PUBLIC_BASE_URL: str = "http://localhost:3000"
     RETENTION_DAYS: int = Field(default=14, ge=1)
+    RETENTION_QUIET_HOURS: int = Field(default=24, ge=1)
 
     # --- Claude ---------------------------------------------------------------
     ANTHROPIC_API_KEY: str = ""

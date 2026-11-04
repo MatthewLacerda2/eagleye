@@ -35,7 +35,7 @@ class CameraStatus(BaseModel):
             status=camera.status,
             last_capture_at=camera.last_capture_at,
             last_sent_at=camera.last_sent_at,
-            has_frame=camera.last_sent_frame_path is not None,
+            has_frame=camera.last_capture_at is not None,
         )
 
 

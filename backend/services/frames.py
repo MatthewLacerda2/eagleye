@@ -1,6 +1,7 @@
 """Frame preparation: crop, downscale, JPEG, and the change filter's thumbnail."""
 
 import io
+import os
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
@@ -68,8 +69,33 @@ def frame_path(frames_dir: str, site_key: str, camera_key: str, at: datetime) ->
     )
 
 
+def latest_path(frames_dir: str, site_key: str, camera_key: str) -> str:
+    """The camera's most recent capture, overwritten every round: ``<dir>/_latest/<site>/<camera>.jpg``.
+
+    Site keys start with a letter, so ``_latest`` never collides with a site's folder.
+    """
+    return str(Path(frames_dir) / "_latest" / site_key / f"{camera_key}.jpg")
+
+
 def write(path: str, jpeg: bytes) -> None:
-    """Write a frame file, creating its directories."""
+    """Write a frame file whole, creating its directories; a reader never sees half of it."""
     target = Path(path)
     target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_bytes(jpeg)
+    partial = target.with_name(f".{target.name}.{uuid.uuid4().hex}.part")
+    partial.write_bytes(jpeg)
+    os.replace(partial, target)
+
+
+def remove(paths: list[str], frames_dir: str) -> None:
+    """Delete frame files, then any folder they leave empty, up to ``frames_dir``."""
+    root = Path(frames_dir).resolve()
+    for path in paths:
+        target = Path(path)
+        target.unlink(missing_ok=True)
+        folder = target.parent.resolve()
+        while folder != root and root in folder.parents:
+            try:
+                folder.rmdir()
+            except OSError:  # not empty, or already gone
+                break
+            folder = folder.parent

@@ -66,3 +66,11 @@ async def test_frame_served_and_404_when_file_missing(client, auth_headers, db_s
     assert ok.status_code == 200 and ok.headers["content-type"] == "image/jpeg"
     missing = await client.get(f"/api/v1/observations/{quiet.id}/frame", headers=auth_headers)
     assert missing.status_code == 404
+
+
+async def test_frame_404_after_retention_cleared_it(client, auth_headers, db_session, tmp_path):
+    _, quiet, _ = await _seed(db_session, tmp_path)
+    quiet.frame_path = None
+    await db_session.commit()
+    resp = await client.get(f"/api/v1/observations/{quiet.id}/frame", headers=auth_headers)
+    assert resp.status_code == 404

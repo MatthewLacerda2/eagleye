@@ -118,15 +118,9 @@ async def set_camera_status(
     await session.execute(update(Camera).where(Camera.id == camera_id).values(**values))
 
 
-async def mark_sent(
-    session: AsyncSession, camera_id: uuid.UUID, frame_path: str, at: datetime
-) -> None:
-    """Record the frame most recently sent to the model."""
-    await session.execute(
-        update(Camera)
-        .where(Camera.id == camera_id)
-        .values(last_sent_at=at, last_sent_frame_path=frame_path)
-    )
+async def mark_sent(session: AsyncSession, camera_id: uuid.UUID, at: datetime) -> None:
+    """Record when this camera's frame was last sent to the model."""
+    await session.execute(update(Camera).where(Camera.id == camera_id).values(last_sent_at=at))
 
 
 async def count_online(session: AsyncSession) -> int:

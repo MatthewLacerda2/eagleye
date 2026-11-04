@@ -7,9 +7,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.deps import get_db
+from core.config import Settings, get_settings
 from repositories import sites as sites_repo
 from schemas.cameras import CameraStatus
 from schemas.frames import JpegResponse
+from services.frames import latest_path
 
 router = APIRouter(prefix="/cameras", tags=["cameras"])
 
@@ -22,11 +24,13 @@ async def list_cameras(session: AsyncSession = Depends(get_db)) -> list[CameraSt
 
 @router.get("/{camera_id}/frame", response_class=JpegResponse)
 async def camera_frame(
-    camera_id: uuid.UUID, session: AsyncSession = Depends(get_db)
+    camera_id: uuid.UUID,
+    session: AsyncSession = Depends(get_db),
+    settings: Settings = Depends(get_settings),
 ) -> JpegResponse:
-    """The last frame of this camera that the model saw."""
+    """The camera's most recent capture, whether or not the model saw it."""
     camera = await sites_repo.get_camera(session, camera_id)
-    path = camera.last_sent_frame_path if camera else None
+    path = latest_path(settings.FRAMES_DIR, camera.site.key, camera.key) if camera else None
     if path is None or not Path(path).is_file():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No frame yet")
     return JpegResponse(path)

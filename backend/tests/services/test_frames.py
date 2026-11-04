@@ -42,3 +42,29 @@ def test_frame_path_layout(tmp_path):
     assert path.startswith(f"{tmp_path}/site-1/bow/2026-11-03/") and path.endswith(".jpg")
     frames.write(path, b"jpeg")
     assert open(path, "rb").read() == b"jpeg"
+
+
+def test_latest_path_sits_outside_every_site_tree(tmp_path):
+    # Site keys start with a letter, so "_latest" can never be a site's directory.
+    assert (
+        frames.latest_path(str(tmp_path), "site-1", "bow") == f"{tmp_path}/_latest/site-1/bow.jpg"
+    )
+
+
+def test_write_replaces_the_file_whole(tmp_path):
+    path = frames.latest_path(str(tmp_path), "s", "bow")
+    frames.write(path, b"first")
+    frames.write(path, b"second")
+    assert open(path, "rb").read() == b"second"
+    assert [p.name for p in (tmp_path / "_latest" / "s").iterdir()] == ["bow.jpg"]
+
+
+def test_remove_deletes_files_and_their_empty_folders(tmp_path):
+    at = datetime(2026, 11, 3, tzinfo=UTC)
+    gone = frames.frame_path(str(tmp_path), "s", "bow", at)
+    kept = frames.frame_path(str(tmp_path), "s", "stern", at)
+    frames.write(gone, b"x")
+    frames.write(kept, b"y")
+    frames.remove([gone, str(tmp_path / "never-existed.jpg")], str(tmp_path))
+    assert not (tmp_path / "s" / "bow").exists()
+    assert open(kept, "rb").read() == b"y" and tmp_path.is_dir()

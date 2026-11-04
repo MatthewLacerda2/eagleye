@@ -87,8 +87,8 @@ async def review_observation(
 async def observation_frame(
     observation_id: uuid.UUID, session: AsyncSession = Depends(get_db)
 ) -> JpegResponse:
-    """The frame the model saw."""
+    """The frame the model saw, unless retention has already removed it."""
     obs = await observations_repo.get(session, observation_id)
-    if obs is None or not Path(obs.frame_path).is_file():
+    if obs is None or obs.frame_path is None or not Path(obs.frame_path).is_file():
         raise _NOT_FOUND
     return JpegResponse(obs.frame_path)

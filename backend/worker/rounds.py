@@ -59,7 +59,7 @@ class _Pending:
     frame: frames.PreparedFrame
 
 
-async def _capture(deps: RoundDeps, camera: Camera) -> frames.PreparedFrame | None:
+async def _capture(deps: RoundDeps, site_key: str, camera: Camera) -> frames.PreparedFrame | None:
     async with deps.capture_slots:
         with metrics.capture_seconds.time():
             raw = await deps.grab(
@@ -78,6 +78,11 @@ async def _capture(deps: RoundDeps, camera: Camera) -> frames.PreparedFrame | No
         metrics.captures_total.labels("error").inc()
         return None
     metrics.captures_total.labels("ok").inc()
+    latest = frames.latest_path(deps.settings.FRAMES_DIR, site_key, camera.key)
+    try:
+        await asyncio.to_thread(frames.write, latest, prepared.jpeg)
+    except OSError as exc:  # a full disk must not stop the watch
+        logger.warning("camera %s: could not save the latest frame: %s", camera.key, exc)
     return prepared
 
 
@@ -188,7 +193,7 @@ async def _analyze_chunk(
                 extra=result.extra,
                 frame_path=path,
             )
-            await sites_repo.mark_sent(session, pending.camera.id, path, now)
+            await sites_repo.mark_sent(session, pending.camera.id, now)
             deps.change_filter.mark_sent(pending.state, pending.frame.thumb, now)
             for event in result.events:
                 metrics.observations_events_total.labels(event).inc()
@@ -217,7 +222,7 @@ async def run_site_round(
     if site is None:
         return RoundReport()
     now = deps.clock()
-    captures = await asyncio.gather(*(_capture(deps, c) for c in site.cameras))
+    captures = await asyncio.gather(*(_capture(deps, site.key, c) for c in site.cameras))
     pending: list[_Pending] = []
     async with deps.session_factory() as session:
         for camera, frame in zip(site.cameras, captures, strict=True):

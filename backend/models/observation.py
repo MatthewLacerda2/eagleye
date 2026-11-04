@@ -28,7 +28,7 @@ class Observation(TimestampedUUIDMixin, Base):
     events: Mapped[list[str]] = mapped_column(ARRAY(Text), nullable=False, default=list)
     description: Mapped[str] = mapped_column(Text, nullable=False, default="")
     extra: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
-    frame_path: Mapped[str] = mapped_column(Text, nullable=False)
+    frame_path: Mapped[str | None] = mapped_column(Text)  # None once retention drops it
 
     review: Mapped[str | None] = mapped_column(String(16))  # correct | incorrect
     review_wrong_events: Mapped[list[str]] = mapped_column(

@@ -8,7 +8,6 @@ import time
 import uuid
 from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime, timedelta
-from pathlib import Path
 
 import httpx
 from prometheus_client import start_http_server
@@ -18,7 +17,7 @@ from core.database import SessionLocal
 from core.eagle_config import ConfigError, load_catalog, load_sites
 from repositories import observations as observations_repo
 from repositories import sites as sites_repo
-from services import metrics
+from services import frames, metrics
 from services.alerts import AlertSender
 from services.analyzer import Analyzer, build_client
 from services.capture import grab_frame
@@ -28,7 +27,7 @@ from worker.rounds import RoundDeps, run_keepalive, run_site_round
 
 logger = logging.getLogger("eagleye.worker")
 Sleep = Callable[[float], Awaitable[None]]
-RETENTION_EVERY = timedelta(days=1)
+RETENTION_EVERY = timedelta(hours=1)
 
 
 async def site_loop(
@@ -56,16 +55,23 @@ async def site_loop(
 
 
 async def retention_loop(settings: Settings, sleep: Sleep = asyncio.sleep) -> None:
-    """Once a day: delete old unreviewed observations and their frames."""
+    """Hourly: drop old unreviewed observations, and sooner the frames of quiet ones."""
     while True:
         try:
-            cutoff = datetime.now(UTC) - timedelta(days=settings.RETENTION_DAYS)
+            now = datetime.now(UTC)
             async with SessionLocal() as session:
-                paths = await observations_repo.delete_older_than(session, cutoff)
+                old = await observations_repo.delete_older_than(
+                    session, now - timedelta(days=settings.RETENTION_DAYS)
+                )
+                quiet = await observations_repo.clear_quiet_frames(
+                    session, now - timedelta(hours=settings.RETENTION_QUIET_HOURS)
+                )
                 await session.commit()
-            for path in paths:
-                Path(path).unlink(missing_ok=True)
-            logger.info("retention removed %d observations", len(paths))
+            paths = [p for p in old + quiet if p is not None]
+            await asyncio.to_thread(frames.remove, paths, settings.FRAMES_DIR)
+            logger.info(
+                "retention removed %d observations and %d quiet frames", len(old), len(quiet)
+            )
         except Exception:
             logger.exception("retention failed")
         await sleep(RETENTION_EVERY.total_seconds())

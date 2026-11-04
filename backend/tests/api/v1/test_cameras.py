@@ -29,3 +29,21 @@ async def test_catalog_lists_event_types(client, auth_headers):
         "sleeping",
         "smoking",
     ]
+
+
+async def test_camera_frame_serves_the_latest_capture(
+    client, auth_headers, db_session, tmp_path, monkeypatch
+):
+    from core.config import get_settings
+    from repositories import sites as sites_repo
+    from services import frames
+
+    site = await seed_site(db_session)
+    camera = site.cameras[0]
+    monkeypatch.setattr(get_settings(), "FRAMES_DIR", str(tmp_path))
+    frames.write(frames.latest_path(str(tmp_path), site.key, camera.key), b"\xff\xd8latest")
+    await sites_repo.set_camera_status(db_session, camera.id, "online", camera.created_at)
+    resp = await client.get(f"/api/v1/cameras/{camera.id}/frame", headers=auth_headers)
+    assert resp.status_code == 200 and resp.content == b"\xff\xd8latest"
+    rows = (await client.get("/api/v1/cameras", headers=auth_headers)).json()
+    assert [r["has_frame"] for r in rows] == [True, False]

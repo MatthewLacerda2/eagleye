@@ -112,3 +112,18 @@ async def test_storage_failure_logs_the_unrecorded_cost(db_session, make_deps, m
     with pytest.raises(RuntimeError):
         await run_site_round(deps, site.id, {})
     assert "unrecorded cost" in caplog.text
+
+
+async def test_every_capture_refreshes_latest_even_when_skipped(db_session, make_deps):
+    site = await seed_site(db_session)
+    claude, clock, states = FakeClaude(), Clock(), {}
+    deps = make_deps({"a": jpeg(), "b": None}, claude, clock)
+    await run_site_round(deps, site.id, states)
+    latest = Path(deps.settings.FRAMES_DIR) / "_latest" / site.key / "a.jpg"
+    first = latest.read_bytes()
+    clock.now += timedelta(minutes=2)
+    report = await run_site_round(
+        make_deps({"a": jpeg(101), "b": None}, claude, clock), site.id, states
+    )
+    assert report.sent == 0 and latest.read_bytes() != first
+    assert not (latest.parent / "b.jpg").exists()

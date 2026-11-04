@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -95,8 +95,8 @@ async def last_alerted_at(
     )
 
 
-async def delete_older_than(session: AsyncSession, cutoff: datetime) -> list[str]:
-    """Delete unreviewed observations older than ``cutoff``; return their frame paths."""
+async def delete_older_than(session: AsyncSession, cutoff: datetime) -> list[str | None]:
+    """Delete unreviewed observations older than ``cutoff``; return their frame paths, if any."""
     result = await session.execute(
         delete(Observation)
         .where(Observation.observed_at < cutoff, Observation.review.is_(None))
@@ -105,3 +105,27 @@ async def delete_older_than(session: AsyncSession, cutoff: datetime) -> list[str
     paths = list(result.scalars().all())
     await session.flush()
     return paths
+
+
+async def clear_quiet_frames(session: AsyncSession, cutoff: datetime) -> list[str]:
+    """Forget the frames of unreviewed, event-free observations older than ``cutoff``.
+
+    The rows stay, so the counts and the review metrics keep their history.
+    """
+    rows = (
+        await session.execute(
+            select(Observation.id, Observation.frame_path).where(
+                Observation.observed_at < cutoff,
+                Observation.events == [],
+                Observation.review.is_(None),
+                Observation.frame_path.is_not(None),
+            )
+        )
+    ).all()
+    if rows:
+        await session.execute(
+            update(Observation)
+            .where(Observation.id.in_([r.id for r in rows]))
+            .values(frame_path=None)
+        )
+    return [r.frame_path for r in rows]
