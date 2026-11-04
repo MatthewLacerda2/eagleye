@@ -1,117 +1,104 @@
-# GoldStandard
+# Eagleye
 
-**This is a template repository.** It is not an application — it is a
-battle-tested starting point. Clone it, rename the example domain, and build
-your product inside a structure whose architecture and quality gates are already
-decided for you. The worked example resource is `items`: a single CRUD domain
-threaded through all four backend layers, leaving `services/` an empty
-placeholder for logic that outgrows a thin handler.
+**A self-hosted night watchman for your cameras.** Eagleye looks at your camera
+feeds on its own, asks Claude Haiku whether any event from a catalog *you*
+define is happening, stores every decision, and sends an alert by webhook. Nobody
+has to stare at a wall of screens: people only review what it decided.
 
-The operating contract for anyone (human or agent) working in the repo is
-[`CLAUDE.md`](./CLAUDE.md). This README summarizes the architecture and the
-practices — not the line-by-line implementation.
+- **You define what matters** in one YAML file — "someone smoking on deck",
+  "a boat approaching", "a person entering the building outside the front
+  desk". Swap the catalog, and the same service guards a fleet, a building or a
+  warehouse.
+- **Cheap enough to watch everything all the time.** A frame that did not change
+  never reaches the model; frames are downscaled; the prompt is layered for
+  prompt caching; a daily budget cap stops spending.
+- **Measurable.** An admin page to mark each decision right or wrong, and a
+  Grafana dashboard with cost, cache behaviour, camera health and precision per
+  event type.
 
-## What this template stands for
+The design lives in
+[`docs/superpowers/specs/2026-11-02-eagleye-design.md`](docs/superpowers/specs/2026-11-02-eagleye-design.md).
 
-The point of the template is not any single rule. It is that **structure is
-enforced, not suggested.** One `Makefile` defines every quality gate, and CI
-runs those exact targets, so local and CI can never drift. Conventions live in
-linters and config — expressed and checked — rather than in prose that nobody
-reads. Establish the foundation first; build features on top of it second.
-
-## The architecture
-
-**Backend — a strict 4-layer separation (non-negotiable):**
+## How it works
 
 ```
-api/ (handlers)  →  schemas/ (Pydantic)  →  repositories/ (DB)  →  models/ (ORM)
-                         ↘ services/ (business logic) ↗
+cameras ──ffmpeg──▶ frame ──▶ change filter ──changed──▶ Claude Haiku ──▶ observations ──▶ admin review
+                                   │ unchanged                │                  └──▶ webhook alerts
+                                   ▼                          ▼
+                              skipped (free)          usage + cost ──▶ Prometheus / Grafana
 ```
 
-- Handlers parse input, call repositories/services, and shape the response.
-- **The database is touched in `repositories/` and nowhere else** — no raw SQL
-  or ORM query leaks into a handler, service, or util. Repositories `flush()`;
-  the caller `commit()`s.
-- Schemas (Pydantic) are the contract for every request and response.
-- Config is centralized in `pydantic-settings` behind a cached `get_settings()`.
-- Auth is single-tenant JWT; passwords are PBKDF2-hashed.
+Every round (default 2 minutes) the worker grabs one frame per camera, keeps
+only the cameras whose picture changed, and sends them — grouped per site — to
+Claude Haiku 5.5 with a fixed JSON output: which catalog events each camera
+shows and a short description.
 
-**Frontend — SDK-layered, pages never `fetch`:**
+## Quick start
 
-```
-routes/pages  →  lib/api/<domain>.ts  →  lib/api/client.ts (the one place auth lives)
-                       ↘ lib/schemas/<domain>.ts (types mirror the backend) ↗
-```
+Requirements: Docker with Compose, an Anthropic API key.
 
-- A page never talks to the network directly; it calls the typed SDK, which
-  calls the single `apiFetch` client where token handling lives.
-- The **design system is an allowlist, not a guideline**: only semantic color
-  tokens and a typography token scale are valid — raw Tailwind palette classes,
-  hex/`rgb()` literals, legacy `text-*` sizes, and arbitrary `text-[Npx]` all
-  fail lint. UI is composed from ShadCN primitives; hand-rolled form controls
-  are rejected. One exported component per file. All user-facing copy goes
-  through i18next.
-
-## The practices (what is enforced)
-
-- **`make check` is the law.** `make backend` and `make frontend` each run their
-  layer's lint + build + test; CI calls the same targets. Gates must be green
-  before pushing.
-- **Length discipline (backend):** files ≤ 350 lines, endpoint handlers ≤ 50,
-  tests ≤ 50 — enforced by a custom AST linter (`tools/house_lint.py`), not by
-  honor system. Ruff enforces that type annotations exist; the same AST linter
-  enforces that the ones on a `@router` handler are Pydantic I/O models —
-  every request and response body is a schema type, a `list` of one, or `None`,
-  with path/query scalars and injected dependencies exempt. That is a
-  structural check only: what the fields inside a model must contain is yours
-  to decide.
-- **A tested local ESLint plugin (frontend):** the design-system rules above are
-  real rules with their own colocated test suites, run by Vitest alongside the
-  app tests. `max-lines: 550` per file.
-- **Tests roll back, never truncate:** each test runs inside a transaction that
-  is rolled back, so app code must use the handed-in session. Fixtures live in
-  the nearest `conftest.py` and are shared up the tree.
-- **Worktree-per-session:** new work happens in a named git worktree off the
-  latest default branch, with a DB-isolated test database per worktree so
-  parallel sessions never collide.
-
-## Layout
-
-```
-backend/    FastAPI · SQLAlchemy 2.0 async · Pydantic v2 · pytest · Ruff
-frontend/   React 19 · Vite · TanStack Router/Query · Tailwind v4 · ShadCN · Vitest
-docker/     postgres (pgvector/pgvector:pg16)
-Makefile    the single task runner; CI invokes these targets
-CLAUDE.md   the operating contract
+```bash
+cp .env.example .env                       # set ANTHROPIC_API_KEY, JWT_SECRET, admin password
+mkdir -p config/local
+cp config/catalog.example.yaml config/local/catalog.yaml
+cp config/sites.example.yaml   config/local/sites.yaml
+# edit both files, then point CATALOG_PATH / SITES_PATH in .env at config/local/...
+docker compose up -d                        # postgres, api, worker, admin
+docker compose --profile monitoring up -d   # + Prometheus and Grafana
 ```
 
-## Getting started
+- Admin: <http://localhost:3000>
+- Grafana: <http://localhost:3001>
 
-```sh
-cp .env.example .env
+`config/local/` and `data/` are git-ignored: real camera addresses and captured
+frames never enter the repository.
 
-# Backend gates (creates backend/.venv, installs, then lints/builds/tests)
-make back-install
-make backend PYTHON=.venv/bin/python
+### The morning review
 
-# Frontend gates
-make front-install
-make frontend
+1. **Admin → Observations** (only events, newest first). Each row has the frame,
+   what the model saw, and **Correct / Incorrect**. *Incorrect* asks which
+   flagged events were wrong and which events were missed. Turn "Only events"
+   off to review quiet frames too — that is how misses get counted.
+2. **Admin → Cameras** shows whether every camera is online and what it last
+   sent.
+3. **Grafana → Eagleye** shows spend, cache read share, frames sent vs
+   skipped, camera health, alerts, and — from your reviews — precision and
+   misses per event type.
 
-# Everything
-make check
+### What it costs
+
+Claude Haiku 5.5 at $0.10 / $0.50 per million input/output tokens. A
+640-pixel frame is roughly 370 image tokens; the catalog and site context are
+read from the prompt cache at a tenth of the price. A frame that did not change
+costs nothing but bandwidth. `DAILY_BUDGET_USD` stops model calls for the rest
+of the UTC day once reached.
+
+### Alerts
+
+Set `ALERT_WEBHOOK_URLS` (comma-separated) to receive a JSON POST for every
+observation with an event whose catalog entry has `alert: true`. With
+`ALERT_WEBHOOK_SECRET` set, each request carries
+`X-Eagleye-Signature: sha256=<hex HMAC of the body>`. The same camera and event
+alert at most once per `ALERT_COOLDOWN_MINUTES`.
+
+### Monitoring
+
+`monitoring/grafana/dashboards/eagleye.json` is generated by
+`python3 monitoring/build_dashboard.py monitoring/grafana/dashboards/eagleye.json`;
+edit the script, not the JSON.
+
+## Development
+
+Built on the GoldStandard template: a strict 4-layer FastAPI backend, an
+SDK-layered React frontend, and one `Makefile` that defines every quality gate.
+The working contract for humans and agents is [`CLAUDE.md`](CLAUDE.md).
+
+```bash
+docker compose up -d --wait postgres
+make back-install front-install
+make check PYTHON=.venv/bin/python   # PYTHON is relative to backend/
 ```
 
-The backend tests need a Postgres with `pgvector` reachable via `DATABASE_URL`
-(`docker compose up -d --wait postgres` provides one). Running the full stack is
-`docker compose up --build` — postgres + backend + an nginx-served frontend that
-reverse-proxies `/api/*`.
+## License
 
-## Intentional non-goals (documented upgrade paths)
-
-The skeleton deliberately stops short in a few places so the upgrade is a known
-step rather than a rewrite: schema changes use additive `create_all` (add
-Alembic when you need ordered/destructive migrations); auth is single-tenant
-(reintroduce a `tenant_id` FK + a `get_tenant` dependency for multi-tenancy);
-and the frontend schemas are hand-mirrored (generate them from the backend
-OpenAPI spec when the surface grows).
+[Apache-2.0](LICENSE).

@@ -34,7 +34,13 @@ function RootLayout() {
           {isAuthenticated ? (
             <>
               <Link to="/" className="text-foreground hover:text-primary">
-                {t("app.nav.items")}
+                {t("app.nav.observations")}
+              </Link>
+              <Link
+                to="/cameras"
+                className="text-foreground hover:text-primary"
+              >
+                {t("app.nav.cameras")}
               </Link>
               <Button variant="ghost" size="sm" onClick={handleLogout}>
                 {t("app.nav.logout")}

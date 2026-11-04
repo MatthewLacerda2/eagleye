@@ -1,26 +1,32 @@
 {
   "app": {
-    "title": "Gold Standard",
+    "title": "Eagleye",
     "nav": {
-      "items": "Artículos",
+      "observations": "Observaciones",
       "login": "Entrar",
-      "logout": "Cerrar sesión"
+      "logout": "Cerrar sesión",
+      "cameras": "Cámaras"
     }
   },
-  "items": {
-    "heading": "Artículos",
-    "subheading": "Gestiona tus artículos.",
-    "loading": "Cargando artículos…",
-    "error": "No se pudieron cargar los artículos.",
-    "empty": "Aún no hay artículos.",
+  "observations": {
+    "heading": "Observaciones",
+    "subheading": "Lo que vio el vigilante, lo más reciente primero.",
+    "onlyEvents": "Solo eventos",
+    "unreviewed": "Sin revisar",
+    "allSites": "Todos los sitios",
+    "allEvents": "Todos los eventos",
+    "loading": "Cargando observaciones…",
+    "error": "No se pudieron cargar las observaciones.",
+    "empty": "Nada que mostrar.",
+    "loadMore": "Cargar más",
+    "noEvents": "Sin eventos",
     "columns": {
-      "name": "Nombre",
-      "description": "Descripción"
-    },
-    "form": {
-      "namePlaceholder": "Nombre del artículo",
-      "descriptionPlaceholder": "Descripción",
-      "submit": "Añadir artículo"
+      "frame": "Imagen",
+      "when": "Cuándo",
+      "where": "Dónde",
+      "events": "Eventos",
+      "description": "Qué vio",
+      "review": "Revisión"
     }
   },
   "login": {
@@ -31,5 +37,51 @@
     "submit": "Iniciar sesión",
     "submitting": "Iniciando sesión…",
     "error": "Error de inicio de sesión."
+  },
+  "detail": {
+    "back": "Volver a las observaciones",
+    "loading": "Cargando…",
+    "error": "No se pudo cargar esta observación.",
+    "analysis": "Llamada al modelo",
+    "model": "Modelo",
+    "status": "Estado",
+    "latency": "Latencia",
+    "tokens": "Tokens (entrada · lectura de caché · escritura de caché · salida)",
+    "cost": "Costo",
+    "siblings": "Otras cámaras en la misma llamada",
+    "ms": "{{value}} ms",
+    "usd": "US$ {{value}}"
+  },
+  "review": {
+    "correct": "Correcto",
+    "incorrect": "Incorrecto",
+    "save": "Guardar revisión",
+    "cancel": "Cancelar",
+    "wrong": "Incorrecto: {{name}}",
+    "missed": "Omitido: {{name}}",
+    "notePlaceholder": "Nota opcional",
+    "state": {
+      "correct": "Revisado: correcto",
+      "incorrect": "Revisado: incorrecto"
+    }
+  },
+  "cameras": {
+    "heading": "Cámaras",
+    "subheading": "¿El vigilante está vigilando de verdad?",
+    "loading": "Cargando cámaras…",
+    "error": "No se pudieron cargar las cámaras.",
+    "lastCapture": "Última captura",
+    "lastSent": "Última enviada al modelo",
+    "status": {
+      "online": "En línea",
+      "offline": "Sin conexión",
+      "unknown": "Aún no vista"
+    },
+    "disabled": "Desactivada"
+  },
+  "frame": {
+    "loading": "Cargando imagen…",
+    "missing": "Sin imagen",
+    "alt": "Imagen de {{camera}}"
   }
 }

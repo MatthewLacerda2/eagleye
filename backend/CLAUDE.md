@@ -23,15 +23,22 @@ live in the root `Makefile` (`make backend`) and run identically in CI.
 
 ## Size limits (enforced by `tools/house_lint.py`)
 
+Every limit counts **lines of code**: blank lines, comment-only lines and the
+docstring of a module, class or function don't count, so documenting code
+never pushes it over. Any other string still counts.
+
 - File ≤ 350 lines — opt a data module out with `# lint: data-file` in the
   first 15 lines; `tests/**` is exempt.
 - Endpoint handler ≤ 50 lines. Test ≤ 50 lines.
 
 ## Worked example
 
-`items` runs cleanly through every layer — `api/v1/items.py`,
-`schemas/items.py`, `repositories/items.py`, `models/item.py`. Copy its shape
-for new resources rather than inventing a new one.
+`observations` runs cleanly through every layer — `api/v1/observations.py`,
+`schemas/observations.py`, `repositories/observations.py`,
+`models/observation.py`. Copy its shape for new resources rather than inventing
+a new one. The worker (`worker/`) and `services/` call repositories the same
+way handlers do: they get a session, the repositories flush, the caller
+commits.
 
 ## Gate before pushing
 

@@ -22,7 +22,7 @@ from core.database import init_db
 from core.logging_middleware import LoggingMiddleware
 from core.rate_limiter import limiter
 
-APP_NAME = "GoldStandard Backend"
+APP_NAME = "Eagleye"
 
 
 @asynccontextmanager
@@ -85,7 +85,7 @@ def _register_baseline_routes(app: FastAPI) -> None:
     @app.get("/security.txt", response_class=PlainTextResponse)
     async def security_txt() -> str:
         """Plaintext security contact (see securitytxt.org)."""
-        return "Contact: mailto:security@example.com\nExpires: 2027-01-01T00:00:00Z\n"
+        return "Contact: mailto:security@eagleye.invalid\nExpires: 2027-01-01T00:00:00Z\n"
 
 
 app = create_app()

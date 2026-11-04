@@ -222,9 +222,13 @@ Postgres tables (names indicative): `sites`, `cameras`, `analyses`,
 review: `review` = null/`correct`/`incorrect`, `review_wrong_events text[]`,
 `review_missed_events text[]`, `review_note`, `reviewed_at`),
 `alert_deliveries`, plus the template's `users`. Frames: JPEG files on a
-volume, path `frames/<site>/<camera>/<date>/<uuid>.jpg`. Retention:
-`RETENTION_DAYS` (default 14) deletes old frames and observations daily
-(reviewed observations kept). Schema changes go through Alembic (the template's
+volume, path `frames/<site>/<camera>/<date>/<uuid>.jpg` for every frame sent
+to the model, plus `frames/_latest/<site>/<camera>.jpg`, overwritten on every
+capture (sent or skipped). Retention runs hourly: `RETENTION_DAYS` (default 14)
+deletes old unreviewed observations with their frames; `RETENTION_QUIET_HOURS`
+(default 24, enough for a morning review) deletes only the frame of an
+unreviewed observation with no events, keeping its row for the metrics.
+Reviewed observations keep everything. Schema changes go through Alembic (the template's
 `create_all` is not enough once the schema evolves during the PoC).
 
 ### Admin page
@@ -241,8 +245,8 @@ The template's React app (login, shadcn, i18n). Three pages:
 2. **Observation detail** — full frame, all fields, the analysis's cost and
    tokens, the other cameras in the same analysis.
 3. **Cameras** — per site, each camera's state (online/offline, last capture,
-   last sent frame thumbnail), so a person can see the watch is actually
-   watching.
+   latest captured frame), so a person can see the watch is actually watching
+   and spot a frozen feed.
 
 Metrics stay in Grafana, not in the admin.
 
