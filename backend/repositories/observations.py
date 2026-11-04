@@ -45,7 +45,7 @@ async def list_recent(
     if unreviewed:
         query = query.where(Observation.review.is_(None))
     if event_key:
-        query = query.where(Observation.events.any(event_key))
+        query = query.where(Observation.events.contains([event_key]))
     if before:
         query = query.where(Observation.observed_at < before)
     if site_key:
