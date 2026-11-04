@@ -40,4 +40,4 @@ class Observation(TimestampedUUIDMixin, Base):
     review_note: Mapped[str | None] = mapped_column(Text)
     reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
-    camera: Mapped["Camera"] = relationship()  # noqa: F821
+    camera: Mapped[Camera] = relationship()  # noqa: F821

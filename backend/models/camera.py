@@ -33,4 +33,4 @@ class Camera(TimestampedUUIDMixin, Base):
     last_sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     last_sent_frame_path: Mapped[str | None] = mapped_column(Text)
 
-    site: Mapped["Site"] = relationship(back_populates="cameras")  # noqa: F821
+    site: Mapped[Site] = relationship(back_populates="cameras")  # noqa: F821

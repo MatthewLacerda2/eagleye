@@ -57,7 +57,7 @@ class CameraChangeState:
     history: deque[np.ndarray] = field(default_factory=deque)
 
     @classmethod
-    def new(cls, window: int) -> "CameraChangeState":
+    def new(cls, window: int) -> CameraChangeState:
         """An empty state whose auto-mask remembers ``window`` captures."""
         return cls(None, None, None, deque(maxlen=window))
 

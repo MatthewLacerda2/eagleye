@@ -23,7 +23,7 @@ class CameraStatus(BaseModel):
     has_frame: bool
 
     @classmethod
-    def from_model(cls, camera: Camera) -> "CameraStatus":
+    def from_model(cls, camera: Camera) -> CameraStatus:
         """Flatten a camera with its site."""
         return cls(
             id=camera.id,

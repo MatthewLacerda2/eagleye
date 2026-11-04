@@ -31,8 +31,10 @@ a session.
 
 ## Merges serialize per layer, not globally
 
-Both workflows are **path-filtered** — `backend.yml` on `backend/**`, `Makefile`
-and itself; `frontend.yml` on `frontend/**`, `Makefile` and itself. Two branches
+Both workflows always trigger, and a first step decides from the changed paths
+whether the gates run — `backend.yml` on `backend/`, `docker/`,
+`docker-compose.yml`, `.env.example`, the `Makefile` and itself; `frontend.yml`
+on `frontend/`, the `Makefile` and itself. Two branches
 in different layers do not share a gate and cannot break each other's, so they
 merge in either order, or at once, and a re-run buys nothing.
 
@@ -86,12 +88,9 @@ branches in `repositories/`, `components/ui/` and a workflow file barely touch e
 other. Two branches both adding a route, or both adding copy, collide by
 construction.
 
-**Migrations are not a serializer today, and will be.** `init_db()` is additive
-`create_all` with no Alembic, so two branches each adding a table or a column
-merge in any order. That is a property of this skeleton, stated as a deliberate
-upgrade path in `README.md` — not of the stack. The day a downstream repo adds
-Alembic, two branches each generating a revision collide on `down_revision`, and
-this section is wrong until it is rewritten.
+**Migrations serialize.** This repo uses Alembic, so two branches that each
+generate a revision collide on `down_revision`. Run them one after the other:
+merge the first, then rebase the second and regenerate its revision on top.
 
 ## Group the work before splitting it
 
@@ -103,8 +102,8 @@ never scarce, and manufactures collisions: four sub-issues each adding a locale 
 is four rebases and four reviews for one coherent change. Sub-issues are for work
 that is genuinely separable *in the code*, not for work that is merely listable.
 
-A `minor` issue is not a branch. It rides along in whichever pull request is
-already standing in that file.
+A small change (`minor`) need not be a branch. It may ride along in whichever
+pull request is already standing in that file.
 
 ## One worktree per branch
 
@@ -120,7 +119,7 @@ expensive to diagnose.
 
 Two things a worktree does *not* isolate:
 
-- **The compose stack is a singleton.** It binds 5432, 8000 and 3000 on the host,
+- **The compose stack is a singleton.** It binds 5442, 8000 and 3000 on the host,
   so only one worktree can hold it. `CLAUDE.md` says not to start it to "check"
   something anyway — the gates are how you verify.
 - **Anything under `~`.** Bun's and pip's caches are shared, which is fine, and is
@@ -137,8 +136,8 @@ stale worktree keeps a stale test database alive behind it.
   means free for grabs. **Unassign** if it turns out the issue was never started.
 - Worktree off the latest `main`, branch `feat/…` or `fix/…`, pushed under the
   same name.
-- Pull request titled `{issue_number}-{branch_name}`, description opening
-  `Closes #{issue_number}`, then Context / Solution / Surface / Result.
+- The pull request says `Closes #N` for the issue it closes — with the number
+  checked.
 - **Open it as a draft on the first push.** Draft is not decoration on unfinished
   work; it is how work survives a session that ends badly — the issue is the
   durable context, and a hand-back comment may never get written. Know what draft
@@ -160,12 +159,12 @@ There is no separate merge skill in this repo. This is the whole of it.
    touched, `make check` before opening. This is the no-drift rule paying out: CI
    runs these exact targets, so a local green is a real prediction — unlike a repo
    where the runner is a different machine. Two ways it can still lie: CI runs
-   `make backend PYTHON=python` on a clean 3.12 with `requirements.txt` installed
+   `make backend PYTHON=python` on a clean 3.14 with `requirements.txt` installed
    fresh, and `bun install --frozen-lockfile`. A `.venv` or a `node_modules` that
    has drifted from its manifest is green on nothing.
 
    **Not every red is the branch's.** Before fixing a red gate in code the branch
-   did not touch, run it on `main`; if it fails there too, it is a bug to cite or
+   did not touch, run it on `origin/main`; if it fails there too, it is a bug to cite or
    file, not this branch's to fix. And a failure the machine caused —
    `No space left on device`, `Cannot allocate memory`, a killed process —
    says nothing about the code: free the space and run it again, never "fix"
@@ -215,7 +214,7 @@ moment it lands — so the decision is one merge wide, not one batch wide.
 Re-reading is not a licence to start everything. The ceiling is the collision list
 above, and an unblocked issue left unstarted is not
 wasted capacity — it is a rebase not yet paid for. Priority (`infrastructure` →
-`architecture` → `bug` → `foundation` → `feature`, `documentation` any time)
+`architecture` → `fix` → `foundation` → `feat`, `documentation` any time)
 orders what gets **merged**, not what gets started.
 
 **A stage label is the only absolute stop.** `planning` and `human` mean *not
@@ -225,8 +224,8 @@ startable the moment it exists, including an issue filed a minute ago.
 ## Briefing a subagent
 
 Point it at the root `CLAUDE.md`, then the layer contract it will live in —
-`backend/CLAUDE.md` or `frontend/CLAUDE.md` — then the issue. Issues here are
-written to be read cold. Beyond that:
+`backend/CLAUDE.md` or `frontend/CLAUDE.md` — then the issue, which is written
+to be read cold (`CLAUDE.md`, *Issues*). Beyond that:
 
 - Name the **base commit** and what has landed recently that it must respect.
 - Name the **siblings** and which files they are touching.
@@ -289,26 +288,29 @@ one of:
 - **enforced** — a lint rule, gate or test that makes it impossible to repeat
   (`CLAUDE.md`'s *prefer expression over description* says this is the best of
   the four);
-- **documented** — this skill, `issue-write`, or a `CLAUDE.md`, for what the repo
+- **documented** — this skill or a `CLAUDE.md`, for what the repo
   cannot change (a platform behaviour, a procedure);
 - **tracked** — an issue with the evidence (run ids, pull request numbers, the
   failing output) and a proposed fix, never just the symptom.
 
 **Mid-batch, fix what blocks or bites twice.** When a lesson costs the running
 batch time — a gate that misleads, a brief that makes every agent re-solve the same
-trap — fix it now. It is infrastructure, so it outranks whatever was next. An edit
-that changes a **rule in `CLAUDE.md`**, rather than recording a step in a skill,
-changes the template's conventions: open it and leave it for the user (*Take the
+trap — fix it now. It is infrastructure, so it outranks whatever was next.
+Correcting a stale description — a skill, a `CLAUDE.md`, a README — is part of
+that and needs no one's approval; changing a **rule** is changing a decision, so
+it is filed with `planning` and raised at the next check-in (*Take the
 initiative*).
 
 **Otherwise, file it and keep going.** File an agent's "follow-up, not in this
 pull request" notes and a pull request's open decisions the moment you read them,
-not at the end.
+not at the end. Every issue you file on your own carries `agent`.
 
 **At the end, run a retro before reporting back:**
 
 1. List every trap, gap, surprise, workaround and hand-back from the batch: your
-   own notes, each pull request's decisions, the issues the agents filed.
+   own notes, each pull request's decisions, the issues the agents filed. Ask the
+   question the user would otherwise have to: what would have made this batch
+   faster, or less work? Each answer is a lesson like the rest.
 2. Map each one to fixed, enforced, documented or tracked. Anything unmapped gets
    an issue now.
 3. **Refresh the unstarted issues whose ground moved.** Add a short *Context

@@ -29,7 +29,7 @@ class ObservationRead(BaseModel):
     reviewed_at: datetime | None
 
     @classmethod
-    def from_model(cls, obs: Observation) -> "ObservationRead":
+    def from_model(cls, obs: Observation) -> ObservationRead:
         """Flatten an observation with its camera and site."""
         return cls(
             id=obs.id,
@@ -67,7 +67,7 @@ class AnalysisRead(BaseModel):
     cost_usd: float
 
     @classmethod
-    def from_model(cls, analysis: Analysis) -> "AnalysisRead":
+    def from_model(cls, analysis: Analysis) -> AnalysisRead:
         """Copy an analysis row."""
         fields = {name: getattr(analysis, name) for name in cls.model_fields}
         return cls(**{**fields, "cost_usd": float(analysis.cost_usd)})

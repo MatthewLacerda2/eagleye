@@ -17,6 +17,6 @@ class Site(TimestampedUUIDMixin, Base):
     context: Mapped[str] = mapped_column(Text, nullable=False, default="")
     enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 
-    cameras: Mapped[list["Camera"]] = relationship(  # noqa: F821
+    cameras: Mapped[list[Camera]] = relationship(  # noqa: F821
         back_populates="site", order_by="Camera.key"
     )

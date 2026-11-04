@@ -36,7 +36,7 @@ class Rect(_Strict):
     h: float = Field(gt=0, le=1)
 
     @model_validator(mode="after")
-    def _inside_frame(self) -> "Rect":
+    def _inside_frame(self) -> Rect:
         if self.x + self.w > 1 or self.y + self.h > 1:
             raise ValueError("rectangle extends beyond the frame")
         return self
@@ -89,7 +89,7 @@ class Catalog(_Strict):
     extra_schema: dict[str, Any] | None = None
 
     @model_validator(mode="after")
-    def _unique_keys(self) -> "Catalog":
+    def _unique_keys(self) -> Catalog:
         _unique([e.key for e in self.event_types], "event type")
         if self.extra_schema is not None:
             _check_output_schema(self.extra_schema)
@@ -131,7 +131,7 @@ class SiteConfig(_Strict):
         return value
 
     @model_validator(mode="after")
-    def _unique_cameras(self) -> "SiteConfig":
+    def _unique_cameras(self) -> SiteConfig:
         _unique([c.key for c in self.cameras], "camera")
         return self
 
@@ -142,7 +142,7 @@ class SitesFile(_Strict):
     sites: list[SiteConfig]
 
     @model_validator(mode="after")
-    def _unique_sites(self) -> "SitesFile":
+    def _unique_sites(self) -> SitesFile:
         _unique([s.key for s in self.sites], "site")
         return self
 
